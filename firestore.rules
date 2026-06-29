@@ -1,0 +1,73 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global safety net
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    // User profile constraints
+    match /users/{userId} {
+      allow get: if isOwner(userId);
+      allow create: if isOwner(userId)
+                    && incoming().uid == userId
+                    && incoming().email is string
+                    && incoming().timezone is string;
+      allow update: if isOwner(userId)
+                    && incoming().uid == existing().uid
+                    && incoming().email == existing().email
+                    && (incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'timezone', 'workingHoursStart', 'workingHoursEnd']));
+      allow delete: if false;
+
+      // Tasks nested subcollection
+      match /tasks/{taskId} {
+        allow get: if isOwner(userId);
+        allow list: if isOwner(userId);
+        allow create: if isOwner(userId)
+                      && isValidId(taskId)
+                      && incoming().userId == userId
+                      && incoming().title is string && incoming().title.size() <= 200
+                      && incoming().status in ['todo', 'in_progress', 'done', 'missed']
+                      && incoming().source in ['manual', 'voice', 'photo']
+                      && incoming().createdAt is string;
+        allow update: if isOwner(userId)
+                      && incoming().userId == existing().userId
+                      && (incoming().diff(existing()).affectedKeys().hasOnly(['title', 'description', 'deadline', 'estimatedMinutes', 'priorityScore', 'status', 'parentTaskId']));
+        allow delete: if isOwner(userId);
+      }
+
+      // PlanLog nested subcollection
+      match /planLogs/{logId} {
+        allow get: if isOwner(userId);
+        allow list: if isOwner(userId);
+        allow create: if isOwner(userId)
+                      && isValidId(logId)
+                      && incoming().userId == userId
+                      && incoming().action is string && incoming().action.size() <= 500
+                      && incoming().reason is string && incoming().reason.size() <= 2000
+                      && incoming().createdAt is string;
+        allow update, delete: if false; // PlanLogs are append-only.
+      }
+    }
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "name": "Lifeline",
+  "description": "An AI agent that proactively helps users plan, prioritize, and finish tasks before deadlines slip.",
+  "requestFramePermissions": [
+    "microphone",
+    "camera"
+  ],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

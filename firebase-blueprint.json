@@ -1,0 +1,141 @@
+{
+  "entities": {
+    "User": {
+      "title": "User Profile",
+      "description": "User profile with calendar sync settings, timezone, and working hours.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "description": "The unique Firebase Authentication UID."
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "description": "The user's email address."
+        },
+        "displayName": {
+          "type": "string",
+          "description": "The user's display name."
+        },
+        "timezone": {
+          "type": "string",
+          "description": "The user's current timezone."
+        },
+        "workingHoursStart": {
+          "type": "string",
+          "description": "Working hours start (HH:MM format)."
+        },
+        "workingHoursEnd": {
+          "type": "string",
+          "description": "Working hours end (HH:MM format)."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Timestamp when the user account was initialized."
+        }
+      },
+      "required": ["uid", "email", "timezone"]
+    },
+    "Task": {
+      "title": "Task",
+      "description": "A productivity task representing an objective, deadline, estimation, and completion status.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier of the task."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Id of the user who owns the task."
+        },
+        "title": {
+          "type": "string",
+          "description": "Title of the task."
+        },
+        "description": {
+          "type": "string",
+          "description": "Detailed description of the task."
+        },
+        "deadline": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Deadline date-time for the task."
+        },
+        "estimatedMinutes": {
+          "type": "integer",
+          "description": "Estimated duration in minutes."
+        },
+        "priorityScore": {
+          "type": "integer",
+          "description": "Calculated priority score where higher is more urgent/important."
+        },
+        "status": {
+          "type": "string",
+          "enum": ["todo", "in_progress", "done", "missed"],
+          "description": "Current status of the task."
+        },
+        "parentTaskId": {
+          "type": "string",
+          "description": "Parent task ID if this is a decomposed subtask."
+        },
+        "source": {
+          "type": "string",
+          "enum": ["manual", "voice", "photo"],
+          "description": "How the task was added."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Creation timestamp."
+        }
+      },
+      "required": ["title", "userId", "status", "source", "createdAt"]
+    },
+    "PlanLog": {
+      "title": "PlanLog",
+      "description": "A timestamped log action of the proactive planning agent.",
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier of the plan log."
+        },
+        "userId": {
+          "type": "string",
+          "description": "Id of the user who owns the plan log."
+        },
+        "action": {
+          "type": "string",
+          "description": "The specific action the agent executed."
+        },
+        "reason": {
+          "type": "string",
+          "description": "The reasoning behind the agent's decision."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Log timestamp."
+        }
+      },
+      "required": ["userId", "action", "reason", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "Main user collection containing profile settings."
+    },
+    "/users/{userId}/tasks/{taskId}": {
+      "schema": "Task",
+      "description": "Nested collection of tasks specific to the user."
+    },
+    "/users/{userId}/planLogs/{logId}": {
+      "schema": "PlanLog",
+      "description": "Nested collection of agent logs and system decisions."
+    }
+  }
+}
