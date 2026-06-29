@@ -1,5 +1,5 @@
 import { initializeApp } from "firebase/app";
-import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signInAnonymously, type User } from "firebase/auth";
+import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signInAnonymously, signInWithEmailAndPassword, createUserWithEmailAndPassword, type User } from "firebase/auth";
 import { getFirestore, doc, getDocFromServer } from "firebase/firestore";
 import firebaseConfig from "../firebase-applet-config.json";
 
@@ -99,10 +99,29 @@ export function initAuth(
   });
 }
 
-// Guest anonymous sign-in
+// Guest anonymous sign-in or demo account fallback
 export const guestSignIn = async (): Promise<User> => {
-  const result = await signInAnonymously(auth);
-  return result.user;
+  try {
+    const result = await signInAnonymously(auth);
+    return result.user;
+  } catch (err: any) {
+    if (err.code === "auth/operation-not-allowed") {
+      // Fallback to a demo email account if anonymous sign-in is disabled
+      const demoEmail = "demo@lifeline.local";
+      const demoPass = "demo123456";
+      try {
+        const result = await signInWithEmailAndPassword(auth, demoEmail, demoPass);
+        return result.user;
+      } catch (loginErr: any) {
+        if (loginErr.code === "auth/user-not-found" || loginErr.code === "auth/invalid-credential") {
+          const result = await createUserWithEmailAndPassword(auth, demoEmail, demoPass);
+          return result.user;
+        }
+        throw loginErr;
+      }
+    }
+    throw err;
+  }
 };
 
 // Custom Google Sign-In supporting custom scopes

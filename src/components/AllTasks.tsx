@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { collection, onSnapshot, query, orderBy, doc, updateDoc, deleteDoc, addDoc } from "firebase/firestore";
 import { db, handleFirestoreError, OperationType } from "../firebase";
 import { Task } from "../types";
-import { Plus, Check, Trash2, Calendar, AlertTriangle, ShieldCheck, Flame, HelpCircle } from "lucide-react";
+import { Plus, Check, Trash2, Calendar, AlertTriangle, ShieldCheck, Flame, HelpCircle, Edit } from "lucide-react";
 import TaskProgressBar from "./TaskProgressBar";
 
 interface AllTasksProps {
@@ -20,6 +20,14 @@ export default function AllTasks({ user }: AllTasksProps) {
   const [newDeadline, setNewDeadline] = useState("");
   const [newScore, setNewScore] = useState(50);
   const [newEst, setNewEst] = useState(30);
+
+  // Edit task inline state
+  const [editingTaskId, setEditingTaskId] = useState<string | null>(null);
+  const [editTitle, setEditTitle] = useState("");
+  const [editDesc, setEditDesc] = useState("");
+  const [editDeadline, setEditDeadline] = useState("");
+  const [editScore, setEditScore] = useState(50);
+  const [editEst, setEditEst] = useState(30);
 
   useEffect(() => {
     if (!user) return;
@@ -87,6 +95,37 @@ export default function AllTasks({ user }: AllTasksProps) {
       setShowAddInline(false);
     } catch (err) {
       console.error("Failed to add task manually:", err);
+    }
+  };
+
+  const startEditing = (task: Task) => {
+    setEditingTaskId(task.id);
+    setEditTitle(task.title);
+    setEditDesc(task.description || "");
+    // ensure deadline is datetime-local format if possible
+    let formattedDeadline = task.deadline;
+    if (formattedDeadline && formattedDeadline.includes("Z")) {
+      formattedDeadline = formattedDeadline.slice(0, 16);
+    }
+    setEditDeadline(formattedDeadline || "");
+    setEditScore(task.priorityScore);
+    setEditEst(task.estimatedMinutes || 30);
+  };
+
+  const saveEdit = async (taskId: string) => {
+    if (!editTitle.trim() || !editDeadline) return;
+    try {
+      const taskRef = doc(db, "users", user.uid, "tasks", taskId);
+      await updateDoc(taskRef, {
+        title: editTitle,
+        description: editDesc,
+        deadline: editDeadline,
+        estimatedMinutes: Number(editEst) || 30,
+        priorityScore: Number(editScore) || 50,
+      });
+      setEditingTaskId(null);
+    } catch (err) {
+      console.error("Failed to save edit:", err);
     }
   };
 
@@ -420,6 +459,58 @@ export default function AllTasks({ user }: AllTasksProps) {
               </thead>
               <tbody className="divide-y divide-stone-50 font-sans text-stone-700">
                 {filteredTasks.map((t) => (
+                  editingTaskId === t.id ? (
+                    <tr key={t.id} className="bg-stone-50">
+                      <td className="py-3 px-2" colSpan={6}>
+                        <div className="flex flex-col gap-3">
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                            <input
+                              type="text"
+                              value={editTitle}
+                              onChange={(e) => setEditTitle(e.target.value)}
+                              placeholder="Title"
+                              className="col-span-2 bg-white border border-[#E6E6E4] rounded-lg p-2 text-xs"
+                            />
+                            <input
+                              type="datetime-local"
+                              value={editDeadline}
+                              onChange={(e) => setEditDeadline(e.target.value)}
+                              className="bg-white border border-[#E6E6E4] rounded-lg p-2 text-xs"
+                            />
+                            <input
+                              type="number"
+                              value={editEst}
+                              onChange={(e) => setEditEst(Number(e.target.value))}
+                              placeholder="Mins"
+                              className="bg-white border border-[#E6E6E4] rounded-lg p-2 text-xs"
+                            />
+                            <input
+                              type="text"
+                              value={editDesc}
+                              onChange={(e) => setEditDesc(e.target.value)}
+                              placeholder="Description"
+                              className="col-span-2 bg-white border border-[#E6E6E4] rounded-lg p-2 text-xs"
+                            />
+                            <div className="flex items-center gap-2 col-span-2">
+                              <span className="text-[10px] font-semibold text-stone-500">Priority: {editScore}</span>
+                              <input
+                                type="range"
+                                min="1"
+                                max="100"
+                                value={editScore}
+                                onChange={(e) => setEditScore(Number(e.target.value))}
+                                className="w-full h-1.5 accent-indigo-600"
+                              />
+                            </div>
+                          </div>
+                          <div className="flex justify-end gap-2">
+                            <button onClick={() => setEditingTaskId(null)} className="px-3 py-1.5 text-xs text-stone-600 hover:text-stone-800">Cancel</button>
+                            <button onClick={() => saveEdit(t.id)} className="px-3 py-1.5 text-xs bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">Save</button>
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  ) : (
                   <tr key={t.id} className="hover:bg-stone-50/50 transition-colors">
                     <td className="py-3.5 px-2">
                        <span className="font-semibold text-[#2D2D2D]">{t.title}</span>
@@ -450,6 +541,13 @@ export default function AllTasks({ user }: AllTasksProps) {
                     </td>
                     <td className="py-3.5 px-2 text-right">
                       <div className="flex justify-end gap-1.5">
+                        <button
+                          onClick={() => startEditing(t)}
+                          className="p-1 hover:bg-stone-100 rounded text-stone-400 hover:text-stone-700 transition"
+                          title="Edit Task"
+                        >
+                          <Edit className="w-3.5 h-3.5" />
+                        </button>
                         {t.status !== "done" && (
                           <button
                             onClick={() => changeStatus(t.id, "done")}
@@ -475,6 +573,7 @@ export default function AllTasks({ user }: AllTasksProps) {
                       </div>
                     </td>
                   </tr>
+                  )
                 ))}
               </tbody>
             </table>

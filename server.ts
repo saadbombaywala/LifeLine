@@ -286,7 +286,7 @@ app.post("/api/capture", async (req, res) => {
     }
 
     const response = await ai.models.generateContent({
-      model: "gemini-3.5-flash",
+      model: "gemini-2.5-flash",
       contents: [
         {
           inlineData: {
@@ -324,7 +324,7 @@ app.post("/api/review", async (req, res) => {
     Be constructive, practical, encouraging, and clear. Do not use Markdown headings like # or ##.`;
 
     const response = await ai.models.generateContent({
-      model: "gemini-3.5-flash",
+      model: "gemini-2.5-flash",
       contents: prompt,
     });
 
@@ -374,7 +374,7 @@ app.post("/api/agent", async (req, res) => {
 
     // We execute the generation content
     const response = await ai.models.generateContent({
-      model: "gemini-3.5-flash",
+      model: "gemini-2.5-flash",
       contents: geminiContents,
       config: {
         systemInstruction: sysInstruction,
@@ -607,7 +607,7 @@ app.post("/api/agent", async (req, res) => {
               const prompt = `Analyze this email subject and snippet to determine if it contains an actionable deadline or task.\nSubject: ${subjectHeader}\nSnippet: ${snippet}\n\nIf it DOES contain an actionable deadline, extract a concise task title, and a deadline in ISO format, and return a JSON object like {"hasTask":true, "title":"...", "deadline":"..."}.\nIf it DOES NOT, return {"hasTask":false}. Only return valid JSON.`;
               
               const aiRes = await ai.models.generateContent({
-                model: "gemini-3.5-flash",
+                model: "gemini-2.5-flash",
                 contents: prompt,
                 config: { responseMimeType: "application/json" }
               });
@@ -751,7 +751,7 @@ app.post("/api/agent", async (req, res) => {
       ];
 
       const secondResponse = await ai.models.generateContent({
-        model: "gemini-3.5-flash",
+        model: "gemini-2.5-flash",
         contents: secondContents,
         config: { systemInstruction: sysInstruction },
       });
